@@ -44,6 +44,7 @@
 #include <linux/fb.h>
 #include <linux/notifier.h>
 #endif
+#include <uapi/linux/sched/types.h>
 
 #define SYNAPTICS_TCM_ID_PRODUCT (1 << 0)
 #define SYNAPTICS_TCM_ID_VERSION 0x0100
