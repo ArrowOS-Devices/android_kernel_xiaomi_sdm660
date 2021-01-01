@@ -28,8 +28,6 @@
 
 #include "nt36xxx_mem_map.h"
 
-#define NVT_DEBUG 1
-
 
 #define NVTTOUCH_RST_PIN 66
 #define NVTTOUCH_INT_PIN 67
@@ -47,12 +45,8 @@
 #define I2C_FW_Address 0x01
 #define I2C_HW_Address 0x62
 
-#if NVT_DEBUG
-#define NVT_LOG(fmt, args...)    pr_err("[%s] %s %d: " fmt, NVT_I2C_NAME, __func__, __LINE__, ##args)
-#else
-#define NVT_LOG(fmt, args...)    pr_info("[%s] %s %d: " fmt, NVT_I2C_NAME, __func__, __LINE__, ##args)
-#endif
-#define NVT_ERR(fmt, args...)    pr_err("[%s] %s %d: " fmt, NVT_I2C_NAME, __func__, __LINE__, ##args)
+#define NVT_LOG(fmt, args...)    pr_debug("[%s] %s %d: " fmt, NVT_I2C_NAME, __func__, __LINE__, ##args)
+#define NVT_ERR(fmt, args...)    pr_debug("[%s] %s %d: " fmt, NVT_I2C_NAME, __func__, __LINE__, ##args)
 
 #if 1
 #define LOGV(log, ...) \
@@ -90,15 +84,15 @@ extern const uint16_t touch_key_array[TOUCH_KEY_NUM];
 #define NVT_TOUCH_SUPPORT_HW_RST 0
 
 
-#define NVT_TOUCH_PROC 1
-#define NVT_TOUCH_EXT_PROC 1
-#define NVT_TOUCH_MP 1
+#define NVT_TOUCH_PROC 0
+#define NVT_TOUCH_EXT_PROC 0
+#define NVT_TOUCH_MP 0
 #define MT_PROTOCOL_B 1
 #define WAKEUP_GESTURE 1
 #if WAKEUP_GESTURE
 extern const uint16_t gesture_key_array[];
 #endif
-#define BOOT_UPDATE_FIRMWARE 1
+#define BOOT_UPDATE_FIRMWARE 0
 /* add by yangjiangzhu compatible to shenchao and tianma TP FW  2018/3/16  start */
 #define BOOT_UPDATE_FIRMWARE_NAME_TIANMA "novatek/tianma_nt36672a_miui_f7a.bin"
 #define BOOT_UPDATE_FIRMWARE_NAME_TIANMA_GG5 "novatek/tianma_nt36672a_miui_f7a.bin"
@@ -145,6 +139,7 @@ struct nvt_ts_data {
 	const struct nvt_ts_mem_map *mmap;
 	uint8_t carrier_system;
 	uint16_t nvt_pid;
+	struct wakeup_source *gesture_wakeup;
 };
 
 #if NVT_TOUCH_PROC
