@@ -57,4 +57,17 @@ menu "Xiaomi board selection"
 		help
 		  Support for Xiaomi MI 6X variant
 
+	config MACH_XIAOMI_NEWCAM
+		bool "Xiaomi NEWCAM board"
+		select MACH_LONGCHEER
+		help
+		  Support for Xiaomi NEWCAM blobs
+
+	config MACH_XIAOMI_QCAM
+		bool "Xiaomi QCAM board"
+		depends on !MACH_XIAOMI_NEWCAM
+		select MACH_LONGCHEER
+		help
+		  Support for Xiaomi Jasmine 10 blobs
+
 endmenu
