@@ -525,12 +525,6 @@
 			qcom,sensor-name = "backlight_therm";
 		};
 	};
-
-	qcom,bcl {
-		qcom,ibat-monitor {
-			qcom,soc-low-threshold = <5>;
-		};
-	};
 };
 
 &qcom_seecom {
