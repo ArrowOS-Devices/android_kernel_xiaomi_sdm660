@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -53,6 +54,8 @@ enum htt_ppdu_stats_tlv_tag {
     HTT_PPDU_STATS_USR_COMPLTN_BA_BITMAP_1024_TLV,/* htt_ppdu_stats_user_compltn_ba_bitmap_1024_tlv */
     HTT_PPDU_STATS_RX_MGMTCTRL_PAYLOAD_TLV,       /* htt_ppdu_stats_rx_mgmtctrl_payload_tlv */
     HTT_PPDU_STATS_FOR_SMU_TLV,                   /* htt_ppdu_stats_for_smu_tlv */
+    HTT_PPDU_STATS_MLO_TX_RESP_TLV,               /* htt_ppdu_stats_mlo_tx_resp_tlv */
+    HTT_PPDU_STATS_MLO_TX_NOTIFICATION_TLV,       /* htt_ppdu_stats_mlo_tx_notification_tlv */
 
     /* New TLV's are added above to this line */
     HTT_PPDU_STATS_MAX_TAG,
@@ -210,10 +213,13 @@ PREPACK struct htt_tx_ppdu_stats_info {
     A_UINT32 tx_ratecode:       8,
              is_ampdu:          1,
              ba_ack_failed:     2,
-             /*  0: 20 MHz
-                 1: 40 MHz
-                 2: 80 MHz
-                 3: 160 MHz or 80+80 MHz */
+             /* bw
+              *  0: 20 MHz
+              *  1: 40 MHz
+              *  2: 80 MHz
+              *  3: 160 MHz or 80+80 MHz
+              *  4: 320 MHz
+              */
              bw:                3,
              sgi:               1,
              skipped_rate_ctrl: 1,
@@ -375,6 +381,13 @@ enum HTT_STATS_FTYPE {
     HTT_STATS_FTYPE_TIDQ_DATA_MU,
     HTT_STATS_FTYPE_SGEN_UL_BSR_RESP,
     HTT_STATS_FTYPE_SGEN_QOS_NULL,
+    HTT_STATS_FTYPE_SGEN_BE_NDPA,
+    HTT_STATS_FTYPE_SGEN_BE_NDP,
+    HTT_STATS_FTYPE_SGEN_BE_MU_TRIG,
+    HTT_STATS_FTYPE_SGEN_BE_MU_BAR,
+    HTT_STATS_FTYPE_SGEN_BE_MU_BRP,
+    HTT_STATS_FTYPE_SGEN_BE_MU_RTS,
+    HTT_STATS_FTYPE_SGEN_BE_MU_BSRP,
     HTT_STATS_FTYPE_MAX,
 };
 typedef enum HTT_STATS_FTYPE HTT_STATS_FTYPE;
@@ -416,6 +429,8 @@ enum HTT_PPDU_STATS_BW {
     HTT_PPDU_STATS_BANDWIDTH_80MHZ  = 4,
     HTT_PPDU_STATS_BANDWIDTH_160MHZ = 5, /* includes 80+80 */
     HTT_PPDU_STATS_BANDWIDTH_DYN    = 6,
+    HTT_PPDU_STATS_BANDWIDTH_DYN_PATTERNS = 7,
+    HTT_PPDU_STATS_BANDWIDTH_320MHZ = 8,
 };
 typedef enum HTT_PPDU_STATS_BW HTT_PPDU_STATS_BW;
 
@@ -433,16 +448,23 @@ typedef enum HTT_PPDU_STATS_BW HTT_PPDU_STATS_BW;
      } while (0)
 
 enum HTT_PPDU_STATS_SEQ_TYPE {
-    HTT_SEQTYPE_UNSPECIFIED     = 0,
-    HTT_SEQTYPE_SU              = 1,
-    HTT_SEQTYPE_AC_MU_MIMO      = 2,
-    HTT_SEQTYPE_AX_MU_MIMO      = 3,
-    HTT_SEQTYPE_MU_OFDMA        = 4,
-    HTT_SEQTYPE_UL_TRIG         = 5,
-    HTT_SEQTYPE_BURST_BCN       = 6,
-    HTT_SEQTYPE_UL_BSR_RESP     = 7,
-    HTT_SEQTYPE_UL_BSR_TRIG     = 8,
-    HTT_SEQTYPE_UL_RESP         = 9,
+    HTT_SEQTYPE_UNSPECIFIED         = 0,
+    HTT_SEQTYPE_SU                  = 1,
+    HTT_SEQTYPE_AC_MU_MIMO          = 2,
+    HTT_SEQTYPE_AX_MU_MIMO          = 3,
+    HTT_SEQTYPE_MU_OFDMA            = 4,
+    HTT_SEQTYPE_UL_MU_OFDMA_TRIG    = 5, /* new name - use this */
+        HTT_SEQTYPE_UL_TRIG         = 5,  /* deprecated old name */
+    HTT_SEQTYPE_BURST_BCN           = 6,
+    HTT_SEQTYPE_UL_BSR_RESP         = 7,
+    HTT_SEQTYPE_UL_BSR_TRIG         = 8,
+    HTT_SEQTYPE_UL_RESP             = 9,
+    HTT_SEQTYPE_UL_MU_MIMO_TRIG     = 10,
+    HTT_SEQTYPE_BE_MU_MIMO          = 11,
+    HTT_SEQTYPE_BE_MU_OFDMA         = 12,
+    HTT_SEQTYPE_BE_UL_MU_OFDMA_TRIG = 13,
+    HTT_SEQTYPE_BE_UL_MU_MIMO_TRIG  = 14,
+    HTT_SEQTYPE_BE_UL_BSR_TRIG      = 15,
 };
 typedef enum HTT_PPDU_STATS_SEQ_TYPE HTT_PPDU_STATS_SEQ_TYPE;
 
@@ -596,6 +618,11 @@ typedef enum HTT_PPDU_STATS_SPATIAL_REUSE HTT_PPDU_STATS_SPATIAL_REUSE;
 #define HTT_PPDU_STATS_COMMON_TRIG_COOKIE_GET(_val) \
         (((_val) & HTT_PPDU_STATS_COMMON_TRIG_COOKIE_M) >> \
          HTT_PPDU_STATS_COMMON_TRIG_COOKIE_S)
+
+enum HTT_SEQ_TYPE {
+    WAL_PPDU_SEQ_TYPE = 0,
+    HTT_PPDU_SEQ_TYPE = 1,
+};
 
 typedef struct {
     htt_tlv_hdr_t tlv_hdr;
@@ -756,6 +783,26 @@ typedef struct {
             A_UINT32 trig_cookie: 16,
                      trig_cookie_rsvd: 15,
                      trig_cookie_valid: 1;
+        };
+    };
+
+    /*
+     * htt_seq_type field is added for backward compatibility with
+     * pktlog decoder, host driver or any third party tool interpreting
+     * ppdu sequence type. If field 'htt_seq_type'is not present or is
+     * present but set to WAL_PPDU_SEQ_TYPE, decoder should interpret
+     * the seq type as WAL_TXSEND_PPDU_SEQUENCE.
+     * If the new field htt_seq_type is present and is set to
+     * HTT_PPDU_SEQ_TYPE then decoder should interpret the seq type as
+     * HTT_PPDU_STATS_SEQ_TYPE. htt_seq_type field will be set to
+     * HTT_PPDU_SEQ_TYPE in firmware versions where this field is
+     * defined.
+     */
+    union {
+        A_UINT32 reserved__htt_seq_type;
+        struct {
+            A_UINT32 htt_seq_type:  1,
+                     reserved3:     31;
         };
     };
 } htt_ppdu_stats_common_tlv;
@@ -1527,6 +1574,162 @@ typedef enum HTT_PPDU_STATS_RESP_PPDU_TYPE HTT_PPDU_STATS_RESP_PPDU_TYPE;
          ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RESP_PPDU_TYPE_S)); \
      } while (0)
 
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT_M        0x0000f000
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT_S                12
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RU_FORMAT_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_END_M           0x0000ffff
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_END_S                    0
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_END_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RU_END_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RU_END_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_END_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RU_END, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RU_END_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_START_M         0xffff0000
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_START_S                 16
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_START_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RU_START_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RU_START_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_START_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RU_START, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RU_START_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX_M         0x0000ffff
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX_S                  0
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RU_INDEX_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE_M          0xffff0000
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE_S                  16
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RU_SIZE_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END_M      0x0000ffff
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END_S               0
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_END_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START_M    0xffff0000
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START_S            16
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_START_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX_M    0x0000ffff
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX_S             0
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_INDEX_S)); \
+     } while (0)
+
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE_M     0xffff0000
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE_S             16
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE_SET(_var, _val) \
+     do { \
+         HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE, _val); \
+         ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_RESP_RU_SIZE_S)); \
+     } while (0)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP_M  0x0000ffff
+#define HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP_S           0
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP_GET(_var) \
+    (((_var) & HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP_M) >> \
+    HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP_S)
+
+#define HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP_SET (_var , _val) \
+    do { \
+        HTT_CHECK_SET_VAL(HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP, _val); \
+        ((_var) |= ((_val) << HTT_PPDU_STATS_USER_RATE_TLV_PUNC_PATTERN_BITMAP_S)); \
+    } while (0)
+
+typedef enum HTT_PPDU_STATS_RU_SIZE {
+    HTT_PPDU_STATS_RU_26,
+    HTT_PPDU_STATS_RU_52,
+    HTT_PPDU_STATS_RU_52_26,
+    HTT_PPDU_STATS_RU_106,
+    HTT_PPDU_STATS_RU_106_26,
+    HTT_PPDU_STATS_RU_242,
+    HTT_PPDU_STATS_RU_484,
+    HTT_PPDU_STATS_RU_484_242,
+    HTT_PPDU_STATS_RU_996,
+    HTT_PPDU_STATS_RU_996_484,
+    HTT_PPDU_STATS_RU_996_484_242,
+    HTT_PPDU_STATS_RU_996x2,
+    HTT_PPDU_STATS_RU_996x2_484,
+    HTT_PPDU_STATS_RU_996x3,
+    HTT_PPDU_STATS_RU_996x3_484,
+    HTT_PPDU_STATS_RU_996x4,
+} HTT_PPDU_STATS_RU_SIZE;
 
 typedef struct {
     htt_tlv_hdr_t tlv_hdr;
@@ -1546,36 +1749,68 @@ typedef struct {
 
     /* BIT [ 3 :   0]   :- user_pos
      * BIT [ 11:   4]   :- mu_group_id
-     * BIT [ 31:  12]   :- reserved1
+     * BIT [ 15:  12]   :- ru_format
+     * BIT [ 31:  16]   :- reserved1
      */
     union {
         A_UINT32 mu_group_id__user_pos;
         struct {
             A_UINT32 user_pos:           4,
                      mu_group_id:        8,
-                     reserved1:         20;
+                     ru_format:          4,
+                     reserved1:         16;
         };
     };
 
-    /* BIT [ 15 :   0]   :- ru_end
-     * BIT [ 31 :  16]   :- ru_start
+    /* BIT [ 15 :   0]   :- ru_end or ru_index
+     * BIT [ 31 :  16]   :- ru_start or ru_size
+     *
+     * Discriminant is field ru_format:
+     *     - ru_format = 0: ru_end, ru_start
+     *     - ru_format = 1: ru_index, ru_size
+     *     - ru_format = other: reserved for future expansion
+     *
+     * ru_start and ru_end are RU 26 indices
+     *
+     * ru_size is an HTT_PPDU_STATS_RU_SIZE, ru_index is a size
+     * specific index for the given ru_size.
      */
     union {
         A_UINT32 ru_start__ru_end;
+        A_UINT32 ru_size__ru_index;
         struct {
-            A_UINT32 ru_end:            16,
-                     ru_start:          16;
+            A_UINT32 ru_end:   16,
+                     ru_start: 16;
+        };
+        struct {
+            A_UINT32 ru_index: 16,
+                     ru_size:  16;
         };
     };
 
-    /* BIT [ 15 :   0]   :- ru_end
-     * BIT [ 31 :  16]   :- ru_start
+    /* BIT [ 15 :   0]   :- resp_ru_end or resp_ru_index
+     * BIT [ 31 :  16]   :- resp_ru_start or resp_ru_size
+     *
+     * Discriminant is field ru_format:
+     *     - ru_format = 0: resp_ru_end, resp_ru_start
+     *     - ru_format = 1: resp_ru_index, resp_ru_size
+     *     - ru_format = other: reserved for future expansion
+     *
+     * resp_ru_start and resp_ru_end are RU 26 indices
+     *
+     * resp_ru_size is an HTT_PPDU_STATS_RU_SIZE, resp_ru_index
+     * is a size specific index for the given ru_size.
      */
     union {
         A_UINT32 resp_ru_start__ru_end;
+        A_UINT32 resp_ru_size__ru_index;
         struct {
-            A_UINT32 resp_ru_end:       16,
-                     resp_ru_start:     16;
+            A_UINT32 resp_ru_end:   16,
+                     resp_ru_start: 16;
+        };
+        struct {
+            A_UINT32 resp_ru_index: 16,
+                     resp_ru_size:  16;
         };
     };
 
@@ -1660,10 +1895,11 @@ typedef struct {
     };
 
     /*
-     * This is an unused word that can be safely renamed / used
-     * by any future feature.
+     * BIT [15:0]  :- Punctured BW bitmap pattern to indicate which BWs are
+     *                punctured.
      */
-    A_UINT32 reserved4;
+    A_UINT32 punc_pattern_bitmap: 16,
+             reserved4:           16;
 } htt_ppdu_stats_user_rate_tlv;
 
 #define HTT_PPDU_STATS_USR_RATE_VALID_M     0x80000000
@@ -2610,5 +2846,118 @@ typedef struct {
     /* The number of elements in the ba_bitmap array depends on win_size. */
     A_UINT32 ba_bitmap[1];
 } htt_ppdu_stats_for_smu_tlv;
+
+typedef struct {
+    htt_tlv_hdr_t tlv_hdr;
+    /*
+     * BIT [  2 :   0]   :- response_reason
+     * BIT [  6 :   3]   :- mlo_change_t1_cts2self
+     * BIT [ 10 :   7]   :- mlo_change_t1_ppdu
+     * BIT [ 14 :  11]   :- mlo_change_t2_response
+     * BIT [ 18 :  15]   :- mlo_change_t3_r2r
+     * BIT [ 19 :  19]   :- partner_link_info_valid
+     * BIT [ 22 :  20]   :- partner_link_id
+     * BIT [ 27 :  23]   :- partner_link_cmd_ring_id
+     * BIT [ 28 :  28]   :- dot11ax_trigger_frame_embedded
+     * BIT [ 31 :  29]   :- reserved_0a
+     */
+    A_UINT32 response_reason                                         :  3,
+             mlo_change_t1_cts2self                                  :  4,
+             mlo_change_t1_ppdu                                      :  4,
+             mlo_change_t2_response                                  :  4,
+             mlo_change_t3_r2r                                       :  4,
+             partner_link_info_valid                                 :  1,
+             partner_link_id                                         :  3,
+             partner_link_cmd_ring_id                                :  5,
+             dot11ax_trigger_frame_embedded                          :  1,
+             reserved_0a                                             :  3;
+    /*
+     * BIT [ 15 :   0]   :- partner_link_schedule_id
+     * BIT [ 31 :  16]   :- tx_rx_overlap_duration (microsecond units)
+     */
+    A_UINT32 partner_link_schedule_id                                : 16,
+             tx_rx_overlap_duration_us                               : 16;
+    /*
+     * BIT [ 15 :   0]   :- cts2self_duration (microsecond units)
+     * BIT [ 31 :  16]   :- ppdu_duration (microsecond units)
+     */
+    A_UINT32 cts2self_duration_us                                    : 16,
+             ppdu_duration_us                                        : 16;
+    /*
+     * BIT [ 15 :   0]   :- response_duration (microsecond units)
+     * BIT [ 31 :  16]   :- response_to_response_duration (microsecond units)
+     */
+    A_UINT32 response_duration_us                                    : 16,
+             response_to_response_duration_us                        : 16;
+    /*
+     * BIT [ 15 :   0]   :- self_link_schedule_id
+     * BIT [ 31 :  16]   :- hls_branch_debug_code
+     */
+    A_UINT32 self_link_schedule_id                                   : 16,
+             hls_branch_debug_code                                   : 16;
+    /*
+     * BIT [ 31 :   0]   :- hls_decision_debug_info
+     */
+    A_UINT32 hls_decision_debug_info                                 : 32;
+} htt_ppdu_stats_mlo_tx_resp_tlv;
+
+typedef struct {
+    htt_tlv_hdr_t tlv_hdr;
+    /*
+     * BIT [  2 :   0]   :- notification_reason
+     * BIT [  3 :   3]   :- ml_decision
+     * BIT [  4 :   4]   :- cts2self_padding
+     * BIT [  5 :   5]   :- initiated_by_truncated_backoff
+     * BIT [  8 :   6]   :- transmit_start_reason
+     * BIT [ 14 :   9]   :- num_users
+     * BIT [ 24 :  15]   :- nstr_mlo_sta_id
+     * BIT [ 25 :  25]   :- block_self_ml_sync
+     * BIT [ 26 :  26]   :- block_partner_ml_sync
+     * BIT [ 27 :  27]   :- nstr_mlo_sta_id_valid
+     * BIT [ 31 :  28]   :- reserved_0a
+     */
+    A_UINT32 notification_reason                                     :  3,
+             ml_decision                                             :  1,
+             cts2self_padding                                        :  1,
+             initiated_by_truncated_backoff                          :  1,
+             transmit_start_reason                                   :  3,
+             num_users                                               :  6,
+             nstr_mlo_sta_id                                         : 10,
+             block_self_ml_sync                                      :  1,
+             block_partner_ml_sync                                   :  1,
+             nstr_mlo_sta_id_valid                                   :  1,
+             reserved_0a                                             :  4;
+    /*
+     * BIT [ 15 :   0]   :- pdg_ppdu_duration_adjust_value (microsecond units)
+     * BIT [ 31 :  16]   :- mlo_ppdu_duration_adjust_value (microsecond units)
+     */
+    A_UINT32 pdg_ppdu_duration_adjust_value_us                       : 16,
+             mlo_ppdu_duration_adjust_value_us                       : 16;
+    /*
+     * BIT [ 15 :   0]   :- response_duration (microsecond units)
+     * BIT [ 31 :  16]   :- response_to_response_duration (microsecond units)
+     */
+    A_UINT32 response_duration_us                                    : 16,
+             response_to_response_duration_us                        : 16;
+    /*
+     * BIT [ 15 :   0]   :- schedule_id
+     * BIT [ 20 :  16]   :- cmd_ring_id
+     * BIT [ 31 :  21]   :- reserved_1a
+     */
+    A_UINT32 schedule_id                                             : 16,
+             cmd_ring_id                                             :  5,
+             reserved_1a                                             : 11;
+    /*
+     * BIT [ 31 :  0]   :- mlo_reference_timestamp (microsecond units)
+     */
+    A_UINT32 mlo_reference_timestamp_us                              : 32;
+    /*
+     * BIT [ 15 :   0]   :- cts2self_duration (microsecond units)
+     * BIT [ 31 :  16]   :- ppdu_duration (microsecond units)
+     */
+    A_UINT32 cts2self_duration_us                                    : 16,
+             ppdu_duration_us                                        : 16;
+} htt_ppdu_stats_mlo_tx_notification_tlv;
+
 
 #endif //__HTT_PPDU_STATS_H__
