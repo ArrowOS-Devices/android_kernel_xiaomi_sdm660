@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -190,8 +191,16 @@
 #define WLAN_VHTOP_CHWIDTH_REVSIG_80_80  1
 
 #define WLAN_RATE_VAL              0x7f
+#define WLAN_BASIC_RATE_MASK       0x80
 
 #define WLAN_RV(v)     ((v) & WLAN_RATE_VAL)
+
+#define WLAN_BSS_MEMBERSHIP_SELECTOR_HT_PHY       127
+#define WLAN_BSS_MEMBERSHIP_SELECTOR_VHT_PHY      126
+#define WLAN_BSS_MEMBERSHIP_SELECTOR_GLK          125
+#define WLAN_BSS_MEMBERSHIP_SELECTOR_EPD          124
+#define WLAN_BSS_MEMBERSHIP_SELECTOR_SAE_H2E      123
+#define WLAN_BSS_MEMBERSHIP_SELECTOR_HE_PHY       122
 
 #define WLAN_CHAN_IS_5GHZ(chanidx) \
 	((chanidx > 30) ? true : false)
