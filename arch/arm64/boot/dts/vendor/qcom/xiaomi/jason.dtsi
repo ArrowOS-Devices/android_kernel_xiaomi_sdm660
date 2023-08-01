@@ -1,3 +1,4 @@
 #include "xiaomi-sdm660-common.dtsi"
+#include "qpnp_haptic.dtsi"
 #include "mi/mi-sdm660-common.dtsi"
 #include "mi/jason/jason-sdm660.dtsi"
